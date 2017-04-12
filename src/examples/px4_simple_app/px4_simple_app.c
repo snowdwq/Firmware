@@ -64,8 +64,8 @@ int px4_simple_app_main(int argc, char *argv[])
 
 	/* advertise attitude topic */
 	struct vehicle_attitude_s att;
-	memset(&att, 0, sizeof(att));
-	orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
+	memset(&att, 0, sizeof(att));//内存清零操作
+	orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);//typedef void * orb_advert_t  表示这个orb_advert_t 就是 void *
 
 	/* one could wait for multiple topics with this technique, just using one here */
 	px4_pollfd_struct_t fds[] = {
@@ -73,7 +73,7 @@ int px4_simple_app_main(int argc, char *argv[])
 		/* there could be more file descriptors here, in the form like:
 		 * { .fd = other_sub_fd,   .events = POLLIN },
 		 */
-	};
+	};//1、这个.fd中的点表示什么意思？ 2、为什么有两个花括号？
 
 	int error_counter = 0;
 
@@ -88,8 +88,8 @@ int px4_simple_app_main(int argc, char *argv[])
 
 		} else if (poll_ret < 0) {
 			/* this is seriously bad - should be an emergency */
-			if (error_counter < 10 || error_counter % 50 == 0) {
-				/* use a counter to prevent flooding (and slowing us down) */
+			if (error_counter < 10 || error_counter % 50 == 0) {//很奇怪的事情，当错误在10次以内或者50次，100次的时候输出错误
+				/* use a counter to prevent flooding (and slowing us down) */				//，那么在30次的时候就没有任何表示了
 				PX4_ERR("ERROR return value from poll(): %d", poll_ret);
 			}
 
@@ -97,7 +97,7 @@ int px4_simple_app_main(int argc, char *argv[])
 
 		} else {
 
-			if (fds[0].revents & POLLIN) {
+			if (fds[0].revents & POLLIN) {//这个POLLIN恒为1的，.revents又是事件的flag
 				/* obtained data for the first file descriptor */
 				struct sensor_combined_s raw;
 				/* copy sensors raw data into local buffer */

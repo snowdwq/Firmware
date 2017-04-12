@@ -104,7 +104,7 @@ class MulticopterPositionControl : public control::SuperBlock
 {
 public:
 	/**
-	 * Constructor
+	 * Constructor 构造函数
 	 */
 	MulticopterPositionControl();
 
@@ -657,7 +657,7 @@ MulticopterPositionControl::parameters_update(bool force)
 
 
 		/*
-		 * increase the maximum horizontal acceleration such that stopping
+		 * increase the maximum horizontal(水平的) acceleration such that stopping
 		 * within 1 s from full speed is feasible
 		 */
 		_params.acc_hor_max = math::max(_params.vel_cruise(0), _params.acc_hor_max);
@@ -700,6 +700,8 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+
+
 
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
 		if (!_attitude_setpoint_id) {
@@ -2245,6 +2247,7 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 void
 MulticopterPositionControl::task_main()
 {
+	PX4_INFO("Hello dwq!\n");
 
 	/*
 	 * do subscriptions
@@ -2276,7 +2279,7 @@ MulticopterPositionControl::task_main()
 
 	bool was_armed = false;
 
-	hrt_abstime t_prev = 0;
+	hrt_abstime t_prev = 0;//uint64 定义成这样，心累！<2017-04-11.10:42>
 
 	// Let's be safe and have the landing gear down by default
 	_att_sp.landing_gear = -1.0f;
@@ -2287,11 +2290,14 @@ MulticopterPositionControl::task_main()
 
 	fds[0].fd = _local_pos_sub;
 	fds[0].events = POLLIN;
+	PX4_INFO("fds[0].events=%f",fds[0].events);
 
 	while (!_task_should_exit) {
+		//PX4_INFO("Hello dwq!\n");
 		/* wait for up to 20ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 20);
-
+		//PX4_INFO("pret \n");
+		//PX4_INFO("%d",pret);
 		/* timed out - periodic check for _task_should_exit */
 		if (pret == 0) {
 			// Go through the loop anyway to copy manual input at 50 Hz.
@@ -2308,7 +2314,7 @@ MulticopterPositionControl::task_main()
 		parameters_update(false);
 
 		hrt_abstime t = hrt_absolute_time();
-		float dt = t_prev != 0 ? (t - t_prev) / 1e6f : 0.004f;
+		float dt = t_prev != 0 ? (t - t_prev) / 1e6f : 0.004f;//1e6f ：就是1000000 f代表单精度浮点型。< --dwq-2017.04.11.13:56>
 		t_prev = t;
 
 		// set dt for control blocks

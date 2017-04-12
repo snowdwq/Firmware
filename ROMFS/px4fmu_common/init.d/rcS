@@ -789,13 +789,23 @@ then
 	then
 	else
 		# Start MAVLink
+	#	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
+	#fi
+		
+	# Start USB shell if no microSD present,MAVLink else 
+	if [ $LOG_FILE == /dev/null ]
+	then 
+		#Try to get an USB console
+		nshterm /dev/ttyACM0 &
+	else 
 		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 	fi
+
 
 	#
 	# Logging
 	#
-	if ver hwcmp PX4FMU_V1
+	if ver hwcmp PX4FMU_V1  
 	then
 		if sdlog2 start -r 30 -a -b 2 -t
 		then

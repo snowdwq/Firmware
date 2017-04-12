@@ -537,7 +537,7 @@ param_get(param_t param, void *val)
 
 	param_lock();
 
-	if (!handle_in_range(param)) {
+	if (!handle_in_range(param)) {			//return:True if the handle is valid(有效).
 		return result;
 	}
 

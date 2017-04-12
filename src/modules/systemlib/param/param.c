@@ -527,12 +527,12 @@ param_get(param_t param, void *val)
 {
 	int result = -1;
 
-	param_lock();
+	param_lock();//参数修改锁住
 
 	const void *v = param_get_value_ptr(param);
 
 	if (val && v) {
-		memcpy(val, v, param_size(param));
+		memcpy(val, v, param_size(param));//把v的内容拷到val里面，拷贝的大小有param的size定
 		result = 0;
 	}
 
