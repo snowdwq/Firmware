@@ -523,7 +523,7 @@ param_get_value_ptr(param_t param)
 }
 
 int
-param_get(param_t param, void *val)
+param_get(param_t param, void *val)//把前一个数据拷到后一个指针里面，直接对寄存器进行操作  --<2017-04-14.15:47.dwq>
 {
 	int result = -1;
 

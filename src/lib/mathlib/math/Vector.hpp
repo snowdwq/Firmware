@@ -279,8 +279,11 @@ public:
 	const Vector<N> emult(const Vector<N> &v) const {
 		Vector<N> res;
 
-		for (unsigned int i = 0; i < N; i++)
+		for (unsigned int i = 0; i < N; i++){
 			res.data[i] = data[i] * v.data[i];
+			//PX4_INFO("data=%lf",data[i]);
+		}
+
 
 		return res;
 	}

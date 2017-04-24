@@ -45,8 +45,8 @@
  *
  * The controller has two loops: P loop for angular error and PD loop for angular rate error.
  * Desired rotation calculated keeping in mind that yaw response is normally slower than roll/pitch.
- * For small deviations controller rotates copter to have shortest path of thrust vector and independently rotates around yaw,
- * so actual rotation axis is not constant. For large deviations controller rotates copter around fixed axis.
+ * For small deviations(误差) controller rotates copter to have shortest path of thrust vector and independently rotates around yaw,
+ * so actual rotation axis is not constant（恒定的）. For large deviations controller rotates copter around fixed axis.
  * These two approaches fused seamlessly with weight depending on angular error.
  * When thrust vector directed near-horizontally (e.g. roll ~= PI/2) yaw setpoint ignored because of singularity.
  * Controller doesn't use Euler angles for work, they generated only for more human-friendly control and logging.
@@ -854,7 +854,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 
 	/* construct attitude setpoint rotation matrix */
 	math::Quaternion q_sp(_v_att_sp.q_d[0], _v_att_sp.q_d[1], _v_att_sp.q_d[2], _v_att_sp.q_d[3]);
-	math::Matrix<3, 3> R_sp = q_sp.to_dcm();
+	math::Matrix<3, 3> R_sp = q_sp.to_dcm();//从四元数转化为旋转矩阵的方法---期望的旋转矩阵 <2107-4-20.13:05.dwq>
 
 	/* get current rotation matrix from control state quaternions */
 	math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
@@ -867,14 +867,15 @@ MulticopterAttitudeControl::control_attitude(float dt)
 	math::Vector<3> R_sp_z(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
 
 	/* axis and sin(angle) of desired rotation */
-	math::Vector<3> e_R = R.transposed() * (R_z % R_sp_z);
+	math::Vector<3> e_R = R.transposed() * (R_z % R_sp_z);//突然发现在子文件夹里面加注释，会go to 不了,里面的%是叉乘的意思 <2017.4.20.18:45.dwq>
 
 	/* calculate angle error */
 	float e_R_z_sin = e_R.length();
-	float e_R_z_cos = R_z * R_sp_z;
+	float e_R_z_cos = R_z * R_sp_z;//dot product
 
 	/* calculate weight for yaw control */
 	float yaw_w = R_sp(2, 2) * R_sp(2, 2);
+	//PX4_INFO("R_sp(2,2)=%d",(int)(e_R_z_sin*100));
 
 	/* calculate rotation matrix after roll/pitch only rotation */
 	math::Matrix<3, 3> R_rp;
@@ -897,7 +898,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 		e_R_cp(2, 1) = e_R_z_axis(0);
 
 		/* rotation matrix for roll/pitch only rotation */
-		R_rp = R * (_I + e_R_cp * e_R_z_sin + e_R_cp * e_R_cp * (1.0f - e_R_z_cos));
+		R_rp = R * (_I + e_R_cp * e_R_z_sin + e_R_cp * e_R_cp * (1.0f - e_R_z_cos));//和文档上是一样的公式，可惜一样看不懂
 
 	} else {
 		/* zero roll/pitch rotation */
@@ -949,7 +950,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
 }
 
 /*
- * Throttle PID attenuation
+ * Throttle PID attenuation（节流 pid 衰减）
  * Function visualization available here https://www.desmos.com/calculator/gn4mfoddje
  * Input: 'tpa_breakpoint', 'tpa_rate', '_thrust_sp'
  * Output: 'pidAttenuationPerAxis' vector
@@ -962,9 +963,9 @@ MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_rat
 	tpa = fmaxf(TPA_RATE_LOWER_LIMIT, fminf(1.0f, tpa));
 
 	math::Vector<3> pidAttenuationPerAxis;
-	pidAttenuationPerAxis(AXIS_INDEX_ROLL) = tpa;
-	pidAttenuationPerAxis(AXIS_INDEX_PITCH) = tpa;
-	pidAttenuationPerAxis(AXIS_INDEX_YAW) = 1.0;
+	pidAttenuationPerAxis(AXIS_INDEX_ROLL) = tpa;//    0
+	pidAttenuationPerAxis(AXIS_INDEX_PITCH) = tpa;// 1
+	pidAttenuationPerAxis(AXIS_INDEX_YAW) = 1.0;// 2
 
 	return pidAttenuationPerAxis;
 }
@@ -986,14 +987,15 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	get_rot_matrix((enum Rotation)_params.board_rotation, &_board_rotation);
 
 	/* fine tune the rotation */
-	math::Matrix<3, 3> board_rotation_offset;
+	math::Matrix<3, 3>       board_rotation_offset;
 	board_rotation_offset.from_euler(M_DEG_TO_RAD_F * _params.board_offset[0],
 					 M_DEG_TO_RAD_F * _params.board_offset[1],
 					 M_DEG_TO_RAD_F * _params.board_offset[2]);
 	_board_rotation = board_rotation_offset * _board_rotation;
 
-	// get the raw gyro data and correct for thermal errors
+	// get the raw gyro(陀螺仪) data and correct for thermal errors
 	math::Vector<3> rates;
+	//PX4_INFO("_selected_gyro=%d",_selected_gyro);//result of test:_selected_gyro==0 <2017-04-28.19:40.dwq>
 
 	if (_selected_gyro == 0) {
 		rates(0) = (_sensor_gyro.x - _sensor_correction.gyro_offset_0[0]) * _sensor_correction.gyro_scale_0[0];

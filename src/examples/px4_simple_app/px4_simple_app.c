@@ -68,7 +68,8 @@ int px4_simple_app_main(int argc, char *argv[])
 	orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);//typedef void * orb_advert_t  表示这个orb_advert_t 就是 void *
 
 	/* one could wait for multiple topics with this technique, just using one here */
-	px4_pollfd_struct_t fds[] = {
+	//px4_pollfd_struct_t
+	struct pollfd fds[] = {
 		{ .fd = sensor_sub_fd,   .events = POLLIN },
 		/* there could be more file descriptors here, in the form like:
 		 * { .fd = other_sub_fd,   .events = POLLIN },

@@ -254,7 +254,7 @@ extern "C" {
 		return ret;
 	}
 
-	int px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout)
+	int px4_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 	{
 		if (nfds == 0) {
 			PX4_WARN("px4_poll with no fds");

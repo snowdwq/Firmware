@@ -2235,7 +2235,8 @@ FixedwingPositionControl::task_main()
 	}
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[2];
+	//px4_pollfd_struct_t fds[2];
+	struct pollfd fds[2];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;

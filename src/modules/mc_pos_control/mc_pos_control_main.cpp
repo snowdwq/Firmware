@@ -415,7 +415,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_home_pos_sub(-1),
 
 	/* publications */
-	_att_sp_pub(nullptr),
+	_att_sp_pub(nullptr),//这是什么赋值方式，C++里面实现不了。。。
 	_local_pos_sp_pub(nullptr),
 	_global_vel_sp_pub(nullptr),
 	_attitude_setpoint_id(nullptr),
@@ -720,15 +720,15 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
 	}
 
-	orb_check(_ctrl_state_sub, &updated);
+	orb_check(_ctrl_state_sub, &updated);//看下面的注释，感觉这个还是很难的呀，因为这里面旋转矩阵和欧拉角、四元数都要计算 --<2017-04-14.14:17.dwq>
 
 	if (updated) {
 		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
 
 		/* get current rotation matrix and euler angles from control state quaternions */
 		math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
-		_R = q_att.to_dcm();
-		math::Vector<3> euler_angles;
+		_R = q_att.to_dcm();//姿态四元数的旋转矩阵--<2017-04-14.14:50.dwq>
+		math::Vector<3> euler_angles;//欧拉角的三维向量
 		euler_angles = _R.to_euler();
 		_yaw = euler_angles(2);
 
@@ -2247,7 +2247,7 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 void
 MulticopterPositionControl::task_main()
 {
-	PX4_INFO("Hello dwq!\n");
+	//PX4_INFO("Hello dwq!\n");
 
 	/*
 	 * do subscriptions
@@ -2272,12 +2272,12 @@ MulticopterPositionControl::task_main()
 	_arming.armed = false;
 
 	/* get an initial update for all sensor and status data */
-	poll_subscriptions();
+	poll_subscriptions();//更新所有的传感器个状态数据 --<2017-04-14.15:59.dwq>
 
 	/* We really need to know from the beginning if we're landed or in-air. */
-	orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
+	orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);//降落检测 是在地面还是空中 --<2017-04-14.16:01.dwq>
 
-	bool was_armed = false;
+	bool was_armed = false;//锁住，但是为什么是false？  <2017-04-13.23:00.dwq>
 
 	hrt_abstime t_prev = 0;//uint64 定义成这样，心累！<2017-04-11.10:42>
 
@@ -2286,18 +2286,20 @@ MulticopterPositionControl::task_main()
 
 
 	/* wakeup source */
-	px4_pollfd_struct_t fds[1];
+//	px4_pollfd_struct_t fds[1];
+	struct pollfd fds[1];
+	//PX4_INFO("Here is right Mr.DU");
 
 	fds[0].fd = _local_pos_sub;
 	fds[0].events = POLLIN;
-	PX4_INFO("fds[0].events=%f",fds[0].events);
+	//PX4_INFO("fds[0].events=%f",fds[0].events);自己添加玩的<2017-04-13.23:01.dwq>
 
-	while (!_task_should_exit) {
+	while (!_task_should_exit) {//_task_should_exit=false 直到置为true.
 		//PX4_INFO("Hello dwq!\n");
 		/* wait for up to 20ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 20);
-		//PX4_INFO("pret \n");
-		//PX4_INFO("%d",pret);
+		//pret=1;
+
 		/* timed out - periodic check for _task_should_exit */
 		if (pret == 0) {
 			// Go through the loop anyway to copy manual input at 50 Hz.
@@ -2306,14 +2308,15 @@ MulticopterPositionControl::task_main()
 		/* this is undesirable but not much we can do */
 		if (pret < 0) {
 			warn("poll error %d, %d", pret, errno);
+			//PX4_INFO("warn is running!Commander!");
 			continue;
 		}
 
-		poll_subscriptions();
+		poll_subscriptions();//数据更新 先orb_check 再orb_copy  --<2017-04-14.16:11.dwq>
 
-		parameters_update(false);
-
-		hrt_abstime t = hrt_absolute_time();
+		parameters_update(false);//一开始的强制初始化，括号里面使用true 现在用false 意思是 根据需要更新数据，取消强制<2017-04-14.9:08.dwq>
+		hrt_abstime t = hrt_absolute_time();//打印之后发现 t=240不变，为什么呢？<2017-04-14.9:35.dwq>
+		//PX4_INFO("absolute_time=%d",t);
 		float dt = t_prev != 0 ? (t - t_prev) / 1e6f : 0.004f;//1e6f ：就是1000000 f代表单精度浮点型。< --dwq-2017.04.11.13:56>
 		t_prev = t;
 
@@ -2332,7 +2335,7 @@ MulticopterPositionControl::task_main()
 			_yaw_takeoff = _yaw;
 		}
 
-		/* reset setpoints and integrators VTOL in FW mode */
+		/* reset setpoints and integrators VTOL（垂直起落） in FW mode */
 		if (_vehicle_status.is_vtol && !_vehicle_status.is_rotary_wing) {
 			_reset_alt_sp = true;
 			_reset_int_xy = true;
@@ -2350,7 +2353,7 @@ MulticopterPositionControl::task_main()
 
 		update_velocity_derivative();
 
-		// reset the horizontal and vertical position hold flags for non-manual modes
+		// reset the horizontal（水平） and vertical（垂直） position hold flags for non-manual modes
 		// or if position / altitude is not controlled
 		if (!_control_mode.flag_control_position_enabled || !_control_mode.flag_control_manual_enabled) {
 			_pos_hold_engaged = false;
@@ -2415,7 +2418,7 @@ MulticopterPositionControl::task_main()
 		/* publish attitude setpoint
 		 * Do not publish if offboard is enabled but position/velocity/accel control is disabled,
 		 * in this case the attitude setpoint is published by the mavlink app. Also do not publish
-		 * if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
+		 * if the vehicle is a VTOL and it's just doing a transition（转变） (the VTOL attitude control module（组件） will generate
 		 * attitude setpoints for the transition).
 		 */
 		if (!(_control_mode.flag_control_offboard_enabled &&
@@ -2427,7 +2430,7 @@ MulticopterPositionControl::task_main()
 				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
 
 			} else if (_attitude_setpoint_id) {
-				_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+				_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);//需要先发布主题，才能发布数据到主题上去
 			}
 		}
 
@@ -2442,8 +2445,9 @@ MulticopterPositionControl::task_main()
 }
 
 int
-MulticopterPositionControl::start()
+MulticopterPositionControl::start()//比task_main() 先运行
 {
+	//PX4_INFO("first out is right");
 	ASSERT(_control_task == -1);
 
 	/* start the task */
