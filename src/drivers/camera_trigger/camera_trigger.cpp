@@ -723,6 +723,11 @@ CameraTrigger::engage(void *arg)
 
 	trig->_camera_interface->trigger(true);
 
+	if (trig->_test_shot) {
+		// do not send messages or increment frame count for test shots
+		return;
+	}
+
 	struct camera_trigger_s	trigger = {};
 
 	// Set timestamp the instant after the trigger goes off
