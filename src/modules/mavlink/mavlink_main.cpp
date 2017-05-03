@@ -113,6 +113,9 @@ extern "C" __EXPORT int mavlink_main(int argc, char *argv[]);
 
 extern mavlink_system_t mavlink_system;
 
+
+
+
 void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length)
 {
 	Mavlink *m = Mavlink::get_instance((unsigned)chan);
@@ -1982,6 +1985,9 @@ Mavlink::task_main(int argc, char *argv[])
 	_mission_manager->set_interval(interval_from_rate(10.0f));
 	_mission_manager->set_verbose(_verbose);
 	LL_APPEND(_streams, _mission_manager);
+
+	//added by dwq 2017-04-27
+	//configure_stream("CA_TRAJECTORY", 100.0f);
 
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:

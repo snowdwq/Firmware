@@ -54,6 +54,11 @@
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
 
+//define by myself <dwq-2017-4-27.11:01>
+#include <uORB/topics/ca_trajectory.h>
+//#include <v2.0/ca_trajectory/mavlink_msg_ca_trajectory.h>
+//-----------------------------------------------------------------//
+
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -265,6 +270,80 @@ void get_mavlink_mode_state(struct vehicle_status_s *status, uint8_t *mavlink_st
 	}
 }
 
+//dwq start-============------------================---------------------===================-------------==========
+class MavlinkStreamCaTrajectory : public MavlinkStream
+{
+public:
+    const char *get_name() const
+    {
+        return MavlinkStreamCaTrajectory::get_name_static();
+    }
+
+    static const char *get_name_static()
+    {
+        return "CA_TRAJECTORY";
+    }
+
+    static uint16_t get_id_static()
+    {
+        return MAVLINK_MSG_ID_CA_TRAJECTORY;
+    }
+
+    uint16_t get_id()
+    {
+        return get_id_static();
+    }
+
+    static MavlinkStream *new_instance(Mavlink *mavlink)
+    {
+        return new MavlinkStreamCaTrajectory(mavlink);
+    }
+
+    unsigned get_size()
+    {
+        return MAVLINK_MSG_ID_CA_TRAJECTORY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+    }
+
+private:
+    MavlinkOrbSubscription *_sub;
+    uint64_t _ca_traj_time;
+
+    /* do not allow top copying this class */
+    MavlinkStreamCaTrajectory(MavlinkStreamCaTrajectory &);
+    MavlinkStreamCaTrajectory& operator = (const MavlinkStreamCaTrajectory &);
+
+protected:
+    explicit MavlinkStreamCaTrajectory(Mavlink *mavlink) : MavlinkStream(mavlink),
+        _sub(_mavlink->add_orb_subscription(ORB_ID(ca_trajectory))),  // make sure you enter the name of your uorb topic here
+        _ca_traj_time(0)
+    {}
+   // mavlink_msg_ca_trajectory_send_struct;
+    void send(const hrt_abstime t)
+    {
+        struct ca_trajectory_s _ca_trajectory;    //make sure ca_trajectory_s is the definition of your uorb topic
+
+        if (_sub->update(&_ca_traj_time, &_ca_trajectory)) {
+
+            mavlink_ca_trajectory_t msg;//make sure mavlink_ca_trajectory_t is the definition of your custom mavlink message
+
+            msg.timestamp = _ca_trajectory.timestamp;
+            msg.time_start_usec = _ca_trajectory.time_start_usec;
+            msg.time_stop_usec  = _ca_trajectory.time_stop_usec;
+            //msg.coefficients =_ca_trajectory.coefficients;
+            memcpy(msg.coefficients,_ca_trajectory.coefficients,sizeof(_ca_trajectory.coefficients));
+            msg.seq_id = _ca_trajectory.seq_id;
+            //test
+            PX4_INFO("send date:%.2f,%.2f,%.2f",//\t%4.2f",
+             	    	            (double)_ca_trajectory.time_start_usec,
+             	    	            (double)_ca_trajectory.time_stop_usec,
+             	    	            (double)_ca_trajectory.seq_id);
+
+            mavlink_msg_ca_trajectory_send_struct(_mavlink->get_channel(), &msg);
+        }
+    }
+};
+////dwq end--------------------------------------------------------------------------------------
+
 
 class MavlinkStreamHeartbeat : public MavlinkStream
 {
@@ -288,7 +367,7 @@ public:
 	{
 		return get_id_static();
 	}
-
+	//mavlink_msg_ca_trajectory_send_struct
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
 		return new MavlinkStreamHeartbeat(mavlink);
@@ -3975,5 +4054,6 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamMountOrientation::new_instance, &MavlinkStreamMountOrientation::get_name_static, &MavlinkStreamMountOrientation::get_id_static),
 	new StreamListItem(&MavlinkStreamHighLatency::new_instance, &MavlinkStreamHighLatency::get_name_static, &MavlinkStreamWind::get_id_static),
 	new StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static),
+	new StreamListItem(&MavlinkStreamCaTrajectory::new_instance, &MavlinkStreamCaTrajectory::get_name_static, &MavlinkStreamCaTrajectory::get_id_static),
 	nullptr
 };

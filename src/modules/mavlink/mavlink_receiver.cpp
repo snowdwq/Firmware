@@ -90,6 +90,7 @@
 
 static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 
+static orb_advert_t _ca_traj_msg_pub(nullptr);
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
 	status{},
@@ -133,6 +134,9 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_control_state_pub(nullptr),
 	_gps_inject_data_pub(nullptr),
 	_command_ack_pub(nullptr),
+	//--dwq
+	//_ca_traj_msg_pub(nullptr),
+	//--end
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_global_ref_timestamp(0),
 	_hil_frames(0),
@@ -147,15 +151,37 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_time_offset(0),
 	_orb_class_instance(-1),
 	_mom_switch_pos{},
-	_mom_switch_state(0)
-{
-}
+	_mom_switch_state(0){}
 
 MavlinkReceiver::~MavlinkReceiver()
 {
 	orb_unsubscribe(_control_mode_sub);
 }
 
+
+
+//-- dwq 2017-04-27
+void
+MavlinkReceiver::handle_message_ca_trajectory_msg(mavlink_message_t *msg)
+{
+    mavlink_ca_trajectory_t traj;
+    mavlink_msg_ca_trajectory_decode(msg, &traj);
+
+    struct ca_trajectory_s   f;
+
+    f.timestamp = hrt_absolute_time();
+    f.seq_id = traj.seq_id;
+    f.time_start_usec = traj.time_start_usec;
+    f.time_stop_usec = traj.time_stop_usec;
+    for(int i=0;i<28;i++)
+        f.coefficients[i] = traj.coefficients[i];
+
+     if(_ca_traj_msg_pub==nullptr)
+        _ca_traj_msg_pub = orb_advertise(ORB_ID(ca_trajectory), &f);
+else
+        orb_publish(ORB_ID(ca_trajectory), _ca_traj_msg_pub, &f);
+}
+//--end .
 void
 MavlinkReceiver::handle_message(mavlink_message_t *msg)
 {
@@ -166,6 +192,13 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	}
 
 	switch (msg->msgid) {
+
+	//--dwq 2017-04-27 adding
+	case MAVLINK_MSG_ID_CA_TRAJECTORY:
+	        handle_message_ca_trajectory_msg(msg);
+	    break;
+
+	//--end .
 	case MAVLINK_MSG_ID_COMMAND_LONG:
 		if (_mavlink->accepting_commands()) {
 			handle_message_command_long(msg);

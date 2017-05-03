@@ -40,7 +40,10 @@
  */
 
 #pragma once
-
+//--dwq 2017-4-27.22:11 adding
+#include <uORB/topics/ca_trajectory.h>
+//#include <v1.0/ca_trajectory/mavlink_msg_ca_trajectory.h>
+//--end  dwq
 #include <systemlib/perf_counter.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
@@ -78,6 +81,8 @@
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/collision_report.h>
+
+
 
 
 #include "mavlink_ftp.h"
@@ -153,6 +158,10 @@ private:
 	void handle_message_logging_ack(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
+
+	//--dwq 2017-4-27 adding a function that handles the incoming mavlink message int the MavlinkReceiver class
+	void handle_message_ca_trajectory_msg(mavlink_message_t *msg);
+	//--end .
 
 	/**
 	 * Set the interval at which the given message stream is published.
@@ -233,6 +242,10 @@ private:
 	static const int _gps_inject_data_queue_size = 6;
 	orb_advert_t _gps_inject_data_pub;
 	orb_advert_t _command_ack_pub;
+
+	//--dwq 2017-04-27 adding an uORB publisher in the MavlinkReceiver class
+	//orb_advert_t _ca_traj_msg_pub;
+	//--end .
 	int _control_mode_sub;
 	uint64_t _global_ref_timestamp;
 	int _hil_frames;

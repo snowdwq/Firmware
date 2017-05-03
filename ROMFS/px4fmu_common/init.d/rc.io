@@ -19,3 +19,10 @@ fi
 if px4io limit ${PX4IO_LIMIT}
 then
 fi
+
+#if ver hwcmp PX4FMU_V2
+#then
+#mavlink stop-all
+#mavlink start -d /dev/ttyS2 -m custom -b 57600
+#mavlink stream -d /dev/ttyS2 -s CA_TRAJECTORY -r 10
+#fi
