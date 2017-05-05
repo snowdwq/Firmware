@@ -176,9 +176,9 @@ MavlinkReceiver::handle_message_ca_trajectory_msg(mavlink_message_t *msg)
     for(int i=0;i<28;i++)
         f.coefficients[i] = traj.coefficients[i];
 
-     if(_ca_traj_msg_pub==nullptr)
+     if(_ca_traj_msg_pub==nullptr)//只公告一次，但是发布很多次<dwq 2017-05-04.11:01>
         _ca_traj_msg_pub = orb_advertise(ORB_ID(ca_trajectory), &f);
-else
+     else
         orb_publish(ORB_ID(ca_trajectory), _ca_traj_msg_pub, &f);
 }
 //--end .
